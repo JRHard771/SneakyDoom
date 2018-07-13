@@ -1,2 +1,2 @@
-#include "zscript/stealthai/sensorymonster.zsc"
-#include "zscript/stealthai/possessed.zsc"
+#include "zscript/stealthai/sensorymonster.txt"
+#include "zscript/stealthai/possessed.txt"
