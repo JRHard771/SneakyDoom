@@ -144,7 +144,7 @@ class SensoryMonster : Actor
 		invoker.DetectPlayers();
 		if (invoker.aware >= AWARE_ATTACK)
 		{
-			if (last_aware < AWARE_ATTACK)
+			if (invoker.last_aware < AWARE_ATTACK)
 				invoker.A_PlaySound(invoker.seesound, CHAN_VOICE);
 			invoker.SetStateLabel(attack);
 		}
@@ -162,7 +162,7 @@ class SensoryMonster : Actor
 		invoker.DetectPlayers();
 		if (invoker.aware >= AWARE_ATTACK)
 		{
-			if (last_aware < AWARE_ATTACK)
+			if (invoker.last_aware < AWARE_ATTACK)
 				invoker.A_PlaySound(invoker.seesound, CHAN_VOICE);
 			invoker.SetStateLabel(attack);
 		}
