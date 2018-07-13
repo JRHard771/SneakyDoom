@@ -1,0 +1,2 @@
+#include "zscript/stealthai/sensorymonster.zsc"
+#include "zscript/stealthai/possessed.zsc"
