@@ -16,8 +16,6 @@ class SAIZombieMan : SensoryMonster replaces ZombieMan
 		ActiveSound "grunt/active";
 		Obituary "$OB_ZOMBIE";
 		DropItem "Clip";
-		SensoryMonster.Vision 1.0, 1.0, 2048.0;
-		SensoryMonster.FoV 150.0;
 	}
 	States
 	{
@@ -79,8 +77,6 @@ class SAIShotgunGuy : SensoryMonster replaces ShotgunGuy
 		ActiveSound "shotguy/active";
 		Obituary "$OB_SHOTGUY";
 		DropItem "Shotgun";
-		SensoryMonster.Vision 1.0, 1.0, 2048.0;
-		SensoryMonster.FoV 150.0;
 	}
 	States
 	{
@@ -142,8 +138,6 @@ class SAIChaingunGuy : SensoryMonster replaces ChaingunGuy
 		AttackSound "chainguy/attack";
 		Obituary "$OB_CHAINGUY";
 		Dropitem "Chaingun";
-		SensoryMonster.Vision 1.0, 1.0, 2048.0;
-		SensoryMonster.FoV 150.0;
 	}
 	States
 	{

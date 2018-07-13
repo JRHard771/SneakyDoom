@@ -50,7 +50,7 @@ class SensoryMonster : Actor
 	{
 		SensoryMonster.SAIParamsInit true;
 		SensoryMonster.Awareness 0.0;
-		SensoryMonster.Vision 1.0, 1.0, 8192.0;
+		SensoryMonster.Vision 1.0, 1.0, 2048.0;
 		SensoryMonster.Hearing 15.0, 8192.0;
 		SensoryMonster.FoV 150.0;
 	}
