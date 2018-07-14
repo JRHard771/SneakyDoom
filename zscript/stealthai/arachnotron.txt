@@ -25,9 +25,9 @@ class SAIArachnotron : SensoryMonster replaces Arachnotron
 	See:
 		BSPI A 20;
 		BSPI A 3 A_BabyMetal;
-		BSPI ABBCC 3 A_Chase;
+		BSPI ABBCC 3 A_SAIChase;
 		BSPI D 3 A_BabyMetal;
-		BSPI DEEFF 3 A_Chase;
+		BSPI DEEFF 3 A_SAIChase;
 		Goto See+1;
 	Search:
 		BSPI A 4 A_BabyMetal;

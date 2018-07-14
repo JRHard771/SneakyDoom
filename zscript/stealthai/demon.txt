@@ -23,7 +23,7 @@ class SAIDemon : SensoryMonster replaces Demon
 		SARG AB 10 A_Sense;
 		Loop;
 	See:
-		SARG AABBCCDD 2 Fast A_Chase;
+		SARG AABBCCDD 2 Fast A_SAIChase;
 		Loop;
 	Search:
 		SARG AABBCCDD 3 Fast A_Search;

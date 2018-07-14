@@ -29,9 +29,9 @@ class SAICyberdemon : SensoryMonster replaces Cyberdemon
 		Loop;
 	See:
 		CYBR A 3 A_Hoof;
-		CYBR ABBCC 3 A_Chase;
+		CYBR ABBCC 3 A_SAIChase;
 		CYBR D 3 A_Metal;
-		CYBR D 3 A_Chase;
+		CYBR D 3 A_SAIChase;
 		Loop;
 	Search:
 		CYBR A 4 A_Hoof;

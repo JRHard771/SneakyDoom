@@ -23,7 +23,7 @@ class SAIFatso : SensoryMonster replaces Fatso
 		FATT AB 15 A_Sense;
 		Loop;
 	See:
-		FATT AABBCCDDEEFF 4 A_Chase;
+		FATT AABBCCDDEEFF 4 A_SAIChase;
 		Loop;
 	Search:
 		FATT AABBCCDDEEFF 5 A_Search;

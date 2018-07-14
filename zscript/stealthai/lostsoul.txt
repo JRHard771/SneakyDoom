@@ -24,7 +24,7 @@ class SAILostSoul : SensoryMonster replaces LostSoul
 		SKUL AB 10 BRIGHT A_Sense;
 		Loop;
 	See:
-		SKUL AB 6 BRIGHT A_Chase;
+		SKUL AB 6 BRIGHT A_SAIChase;
 		Loop;
 	Search:
 		SKUL AB 7 BRIGHT A_Search;

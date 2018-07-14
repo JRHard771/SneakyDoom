@@ -22,7 +22,7 @@ class SAIPainElemental : SensoryMonster replaces PainElemental
 		PAIN A 10 A_Sense;
 		Loop;
 	See:
-		PAIN AABBCC 3 A_Chase;
+		PAIN AABBCC 3 A_SAIChase;
 		Loop;
 	Search:
 		PAIN AABBCC 4 A_Search;

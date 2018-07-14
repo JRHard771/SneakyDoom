@@ -26,7 +26,7 @@ class SAIRevenant : SensoryMonster replaces Revenant
 		SKEL AB 10 A_Sense;
 		Loop;
 	See:
-		SKEL AABBCCDDEEFF 2 A_Chase;
+		SKEL AABBCCDDEEFF 2 A_SAIChase;
 		Loop;
 	Search:
 		SKEL AABBCCDDEEFF 3 A_Search;

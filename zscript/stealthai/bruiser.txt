@@ -24,7 +24,7 @@ class SAIBaronOfHell : SensoryMonster replaces BaronOfHell
 		BOSS AB 10 A_Sense;
 		Loop;
 	See:
-		BOSS AABBCCDD 3 A_Chase;
+		BOSS AABBCCDD 3 A_SAIChase;
 		Loop;
 	Search:
 		BOSS AABBCCDD 4 A_Search;
@@ -72,7 +72,7 @@ class SAIHellKnight : SAIBaronOfHell replaces HellKnight
 		BOS2 AB 10 A_Sense;
 		Loop;
 	See:
-		BOS2 AABBCCDD 3 A_Chase;
+		BOS2 AABBCCDD 3 A_SAIChase;
 		Loop;
 	Search:
 		BOS2 AABBCCDD 4 A_Search;

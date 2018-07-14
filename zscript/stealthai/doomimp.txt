@@ -23,7 +23,7 @@ class SAIDoomImp : SensoryMonster replaces DoomImp
 		TROO AB 10 A_Sense;
 		Loop;
 	See:
-		TROO AABBCCDD 3 A_Chase;
+		TROO AABBCCDD 3 A_SAIChase;
 		Loop;
 	Search:
 		TROO AABBCCDD 4 A_Search;

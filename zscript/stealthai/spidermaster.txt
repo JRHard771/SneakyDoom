@@ -29,11 +29,11 @@ class SAISpiderMastermind : SensoryMonster replaces SpiderMastermind
 		Loop;
 	See:
 		SPID A 3 A_Metal;
-		SPID ABB 3 A_Chase;
+		SPID ABB 3 A_SAIChase;
 		SPID C 3 A_Metal;
-		SPID CDD 3 A_Chase;
+		SPID CDD 3 A_SAIChase;
 		SPID E 3 A_Metal;
-		SPID EFF 3 A_Chase;
+		SPID EFF 3 A_SAIChase;
 		Loop;
 	Search:
 		SPID A 4 A_Metal;

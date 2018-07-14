@@ -23,7 +23,7 @@ class SAICacodemon : SensoryMonster replaces Cacodemon
 		HEAD A 10 A_Sense;
 		Loop;
 	See:
-		HEAD A 3 A_Chase;
+		HEAD A 3 A_SAIChase;
 		Loop;
 	Search:
 		HEAD A 4 A_Search;

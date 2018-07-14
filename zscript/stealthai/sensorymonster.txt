@@ -3,23 +3,31 @@ class SensoryMonster : Actor
 	//Flags for LookForPlayers() LookExParams argument
 	const SAI_SEE_FLAGS = LOF_NOSOUNDCHECK|LOF_NOSEESOUND|LOF_NOJUMP;
 	const SAI_HEAR_FLAGS = LOF_NOSIGHTCHECK|LOF_NOSEESOUND|LOF_NOJUMP;
+	
+	//Maximum angle in degrees that a chasing SensoryMonster will turn to the
+	//left or right to continue investigating or attacking around obstacles.
+	const MAX_CHASE_TURN = 90.0;
 
 	//Amount of awareness needed to begin searching
-	const AWARE_SEARCH = 10.0;
+	const AWARE_SEARCH = 2.0;
 	//Amount of awareness needed to begin attacking
-	const AWARE_ATTACK = 40.0;
+	const AWARE_ATTACK = 30.0;
 	//Maximum awareness
-	const AWARE_MAX = 80.0;
+	const AWARE_MAX = 60.0;
 	//Amount of awareness lost per game tic
 	const AWARE_LOSS_TIC = (1.0 / TICRATE);
 
 	//Multiplier to all visual detection
-	const VISUAL_MULT = sqrt(20);
+	const VISUAL_MULT = sqrt(40);
 
 	bool params_init, search_last_seen;
+	
+	int next_attack_tics, failed_move_tics;
 
-	double sight_light_mult, sight_mult, hear_mult, aware, seen_x, seen_y,
-		sight_max_dist,	sight_fov, hear_max_dist, last_aware;
+	double sight_light_mult, sight_mult, hear_mult, aware, sight_max_dist,
+		sight_fov, hear_max_dist, last_aware;
+	
+	vector2 seen;
 
 	LookExParams look_params;
 
@@ -34,23 +42,23 @@ class SensoryMonster : Actor
 		//If we're still alive...
 		if (health > 0)
 		{
+			if (target && target.health <= 0)
+			{
+				target = null;
+				aware *= 0.5;
+			}
+			
 			//Track our target while we have one
-			if (target && CheckIfTargetInLOS(sight_fov * 0.5, dist_max:
-				sight_max_dist))
+			if (target && CheckIfTargetInLOS(sight_fov * 0.66666667, dist_max:
+				sight_max_dist) && LightDistanceCheck(Distance3D(target)) >=
+				1.0)
 			{
 				search_last_seen = true;
-				seen_x = target.pos.x + target.vel.x;
-				seen_y = target.pos.y + target.vel.y;
-			}
-			else
-			{
-				seen_x += frandom(-1.0,1.0);
-				seen_y += frandom(-1.0,1.0);
+				seen = (target.pos.x - target.vel.x, target.pos.y -
+					target.vel.y);
 			}
 			
-			vector2 seen_vec = (seen_x - pos.x, seen_y - pos.y);
-			
-			if (search_last_seen && seen_vec.length() < speed)
+			if (search_last_seen && (seen - (pos.x, pos.y)).length() < speed)
 			{
 				A_PlaySound(painsound, CHAN_VOICE);
 				search_last_seen = false;
@@ -131,17 +139,19 @@ class SensoryMonster : Actor
 		double linear = map(val, min1, max1, min2, max2);
 		return map(val, min1, max1, linear, max2);
 	}
-
-	//Get multiplier for detection based on distance.
-	double DistMod(double val, double max)
+	
+	double LightDistanceCheck(double distance)
 	{
-			return LogCurve(val, 0.0, max, 2.0, 0.0);
+		double light_amt = target.cursector.GetLightLevel();
+		double distance_mod = LogCurve(distance, 0.0, sight_max_dist, 1.0, 0.0);
+		double light_mod = ExpCurve(light_amt * sight_light_mult, 0.0, 256.0,
+			0.0, VISUAL_MULT);
+		return distance_mod * light_mod * sight_mult * VISUAL_MULT;
 	}
-
-	//Get multiplier for detection based on light level.
-	double LightDetect(double light_amt)
+	
+	double HearingCheck(double distance)
 	{
-		return ExpCurve(light_amt, 0.0, 256.0, 0.0, VISUAL_MULT);
+		return ExpCurve(distance, 0.0, hear_max_dist, 1.0, 0.0) * hear_mult;
 	}
 
 	//Custom detection function. Detect the player visually/aurally by degrees.
@@ -163,7 +173,7 @@ class SensoryMonster : Actor
 		if (target)
 		{
 			double visual_detection = 0.0;
-			double hear_mod = 0.0;
+			double aural_detection = 0.0;
 			
 			//Distance to target.
 			double dist = Distance3D(target);
@@ -172,15 +182,7 @@ class SensoryMonster : Actor
 			if (see_check)
 			{
 				//Modify sight by distance and monster visual acuity.
-				double sight_mod = DistMod(dist, sight_max_dist) *
-					sight_mult * VISUAL_MULT;
-
-				//Modify sight by light level and monster dark vision.
-				double light_mod = LightDetect(
-					target.cursector.GetLightLevel()) * sight_light_mult;
-				
-				//Final visual detection calculation.
-				visual_detection = sight_mod * light_mod;
+				visual_detection = LightDistanceCheck(dist);
 
 				aware += visual_detection;
 			}
@@ -188,68 +190,179 @@ class SensoryMonster : Actor
 			if (LastHeard)
 			{
 				//Modify hearing by distance and monster aural acuity.
-				hear_mod = DistMod(dist, hear_max_dist) * hear_mult;
+				aural_detection = HearingCheck(dist);
 				
-				aware += hear_mod;
+				aware += aural_detection;
+				
+				seen = (target.pos.x, target.pos.y);
+				search_last_seen = true;
 				
 				A_ClearLastHeard();
 			}
 		}
 	}
 	
-	action void A_SeekPlayer()
+	action void A_SAIChase(statelabel melee = "Melee", statelabel missile = "Missile")
 	{
+		if (invoker.next_attack_tics > 0)
+			invoker.next_attack_tics--;
+		if (invoker.failed_move_tics > 5)
+		{
+			invoker.aware = AWARE_ATTACK - AWARE_LOSS_TIC;
+			invoker.failed_move_tics = 0;
+			return;
+		}
+		else if (invoker.next_attack_tics == 0 &&
+			invoker.CheckIfTargetInLOS(invoker.sight_fov))
+		{
+			double distance = invoker.Distance3D(invoker.target);
+			invoker.next_attack_tics = random(1,4) + int(distance / 48.0);
+			if (invoker.FindState(melee) && distance <= invoker.MeleeRange)
+			{
+				invoker.SetStateLabel(melee);
+				return;
+			}
+			else if (invoker.FindState(missile))
+			{
+				invoker.SetStateLabel(missile);
+				return;
+			}
+		}
 		if (!invoker.search_last_seen)
 		{
 			invoker.A_Wander();
 			return;
 		}
 		
-		vector2 delta;
-		delta.x = invoker.seen_x - invoker.pos.x;
-		delta.y = invoker.seen_y - invoker.pos.y;
+		vector2 delta = invoker.seen - (invoker.pos.x, invoker.pos.y);
 		delta = delta.unit() * invoker.speed;
 		
-		vector2 dest = delta;
-		dest.x += invoker.pos.x;
-		dest.y += invoker.pos.y;
+		vector2 dest = delta + (invoker.pos.x, invoker.pos.y);
+		
+		vector2 start = (invoker.pos.x, invoker.pos.y);
 		
 		invoker.angle = VectorAngle(delta.x, delta.y);
 
 		if (!invoker.TryMove(dest, invoker.MaxDropoffHeight))
 		{
+			bool success = false;
+			FLineTraceData doorCheck;
+			
+			LineTrace(invoker.angle, radius * 2, 0.0, offsetz: height / 2, data:
+				doorCheck);
+				
+			if (doorCheck.HitType == TRACE_HitWall)
+				doorCheck.HitLine.Activate(self, 0, SPAC_Use);
+				
 			vector2 try_ccw;
 			vector2 try_cw;
-			for (double offset = 5.0; offset < 90.0; offset += 5.0)
+			
+			for (double offset = 5.0; offset <= MAX_CHASE_TURN; offset += 5.0)
 			{
-				try_ccw = RotateVector(delta, offset);
-				try_ccw.x += invoker.pos.x;
-				try_ccw.y += invoker.pos.y;
-				dest = try_ccw;
-				
-				invoker.angle = VectorAngle(dest.x - invoker.pos.x, dest.y -
+				try_ccw = RotateVector(delta, offset) + (invoker.pos.x,
 					invoker.pos.y);
+				dest = try_ccw;
 					
 				if (invoker.TryMove(dest, invoker.MaxDropoffHeight))
+				{
+					success = true;
 					break;
+				}
 					
-				try_cw = RotateVector(delta, -offset);
-				try_cw.x += invoker.pos.x;
-				try_cw.y += invoker.pos.y;
+				try_cw = RotateVector(delta, -offset) + (invoker.pos.x,
+					invoker.pos.y);
 				dest = try_cw;
 				
-				invoker.angle = VectorAngle(dest.x - invoker.pos.x, dest.y -
+				if (invoker.TryMove(dest, invoker.MaxDropoffHeight))
+				{
+					success = true;
+					break;
+				}
+			}
+			if (success)
+				invoker.failed_move_tics = 0;
+			else
+				invoker.failed_move_tics++;
+		}
+		else
+			invoker.failed_move_tics = 0;
+	}
+	
+	action void A_SeekPlayer()
+	{
+		if (invoker.failed_move_tics > 5)
+		{
+			invoker.search_last_seen = false;
+			invoker.A_PlaySound(invoker.painsound, CHAN_VOICE);
+			invoker.failed_move_tics = 0;
+		}
+		if (!invoker.search_last_seen)
+		{
+			invoker.A_Wander();
+			return;
+		}
+		
+		vector2 delta = invoker.seen - (invoker.pos.x, invoker.pos.y);
+		delta = delta.unit() * invoker.speed;
+		
+		vector2 dest = delta + (invoker.pos.x, invoker.pos.y);
+		
+		vector2 start = (invoker.pos.x, invoker.pos.y);
+		
+		double new_angle = VectorAngle(delta.x, delta.y);
+		invoker.angle = new_angle;
+
+		if (!invoker.TryMove(dest, invoker.MaxDropoffHeight))
+		{
+			bool success = false;
+			FLineTraceData doorCheck;
+			
+			LineTrace(invoker.angle, radius * 2, 0.0, offsetz: height / 2, data:
+				doorCheck);
+				
+			if (doorCheck.HitType == TRACE_HitWall)
+				doorCheck.HitLine.Activate(self, 0, SPAC_Use);
+				
+			vector2 try_ccw;
+			vector2 try_cw;
+			
+			for (double offset = 5.0; offset <= MAX_CHASE_TURN; offset += 5.0)
+			{
+				try_ccw = RotateVector(delta, offset) + (invoker.pos.x,
+					invoker.pos.y);
+				dest = try_ccw;
+				
+				new_angle = VectorAngle(dest.x - invoker.pos.x, dest.y -
+					invoker.pos.y);
+					
+				if (invoker.TryMove(dest, invoker.MaxDropoffHeight))
+				{
+					success = true;
+					invoker.angle = new_angle;
+					break;
+				}
+					
+				try_cw = RotateVector(delta, -offset) + (invoker.pos.x,
+					invoker.pos.y);
+				dest = try_cw;
+				
+				new_angle = VectorAngle(dest.x - invoker.pos.x, dest.y -
 					invoker.pos.y);
 				
 				if (invoker.TryMove(dest, invoker.MaxDropoffHeight))
+				{
+					success = true;
+					invoker.angle = new_angle;
 					break;
+				}
 			}
+			if (success)
+				invoker.failed_move_tics = 0;
+			else
+				invoker.failed_move_tics++;
 		}
-		FLineTraceData doorCheck;
-		LineTrace(invoker.angle, 64.0, 0.0, offsetz: height / 2, data:
-			doorCheck);
-		if (doorCheck.HitType == TRACE_HitWall)
-			doorCheck.HitLine.Activate(self, 0, SPAC_Use);
+		else
+			invoker.failed_move_tics = 0;
 	}
 
 	//Custom A_Look function using DetectPlayers().

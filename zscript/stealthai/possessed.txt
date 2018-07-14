@@ -23,7 +23,7 @@ class SAIZombieMan : SensoryMonster replaces ZombieMan
 		POSS AB 10 A_Sense;
 		Loop;
 	See:
-		POSS AABBCCDD 4 A_Chase;
+		POSS AABBCCDD 4 A_SAIChase;
 		Loop;
 	Search:
 		POSS AABBCCDD 5 A_Search;
@@ -84,7 +84,7 @@ class SAIShotgunGuy : SensoryMonster replaces ShotgunGuy
 		SPOS AB 10 A_Sense;
 		Loop;
 	See:
-		SPOS AABBCCDD 3 A_Chase;
+		SPOS AABBCCDD 3 A_SAIChase;
 		Loop;
 	Search:
 		SPOS AABBCCDD 4 A_Search;
@@ -145,7 +145,7 @@ class SAIChaingunGuy : SensoryMonster replaces ChaingunGuy
 		CPOS AB 10 A_Sense;
 		Loop;
 	See:
-		CPOS AABBCCDD 3 A_Chase;
+		CPOS AABBCCDD 3 A_SAIChase;
 		Loop;
 	Search:
 		CPOS AABBCCDD 4 A_Search;
