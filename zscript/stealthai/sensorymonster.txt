@@ -5,16 +5,16 @@ class SensoryMonster : Actor
 	const SAI_HEAR_FLAGS = LOF_NOSIGHTCHECK|LOF_NOSEESOUND|LOF_NOJUMP;
 
 	//Amount of awareness needed to begin searching
-	const AWARE_SEARCH = 5.0;
+	const AWARE_SEARCH = 10.0;
 	//Amount of awareness needed to begin attacking
-	const AWARE_ATTACK = 15.0;
+	const AWARE_ATTACK = 40.0;
 	//Maximum awareness
-	const AWARE_MAX = 20.0;
+	const AWARE_MAX = 80.0;
 	//Amount of awareness lost per game tic
-	const AWARE_LOSS_TIC = (0.5 / TICRATE);
+	const AWARE_LOSS_TIC = (1.0 / TICRATE);
 
 	//Multiplier to all visual detection
-	const VISUAL_MULT = sqrt(10);
+	const VISUAL_MULT = sqrt(20);
 
 	bool params_init, search_last_seen;
 
@@ -34,12 +34,36 @@ class SensoryMonster : Actor
 		//If we're still alive...
 		if (health > 0)
 		{
+			//Track our target while we have one
+			if (target && CheckIfTargetInLOS(sight_fov * 0.5, dist_max:
+				sight_max_dist))
+			{
+				search_last_seen = true;
+				seen_x = target.pos.x + target.vel.x;
+				seen_y = target.pos.y + target.vel.y;
+			}
+			else
+			{
+				seen_x += frandom(-1.0,1.0);
+				seen_y += frandom(-1.0,1.0);
+			}
+			
+			vector2 seen_vec = (seen_x - pos.x, seen_y - pos.y);
+			
+			if (search_last_seen && seen_vec.length() < speed)
+			{
+				A_PlaySound(painsound, CHAN_VOICE);
+				search_last_seen = false;
+			}
+			
 			//Save awareness from this tic for checking next tic
 			last_aware = aware;
 			
 			aware = min(AWARE_MAX, aware);
 			
-			if (aware > 0.0)
+			if (aware > AWARE_SEARCH)
+				aware = max(AWARE_SEARCH, aware - AWARE_LOSS_TIC);
+			else if (aware < AWARE_SEARCH)
 				aware = max(0.0, aware - AWARE_LOSS_TIC);
 			
 			//Jump straight to Search state if awareness drops below attack threshold
@@ -73,11 +97,12 @@ class SensoryMonster : Actor
 		SensoryMonster.Awareness 0.0;
 		SensoryMonster.Vision 1.0, 1.0, 2048.0;
 		SensoryMonster.Hearing 15.0, 8192.0;
-		SensoryMonster.FoV 150.0;
+		SensoryMonster.FoV 135.0;
 	}
 
 	void initLookParams()
 	{
+		search_last_seen = false;
 		look_params.fov = sight_fov;
 		look_params.minDist = 0;
 		look_params.maxDist = sight_max_dist;
@@ -110,19 +135,13 @@ class SensoryMonster : Actor
 	//Get multiplier for detection based on distance.
 	double DistMod(double val, double max)
 	{
-			return LogCurve(val, 0.0, max, 1.0, 0.0);
+			return LogCurve(val, 0.0, max, 2.0, 0.0);
 	}
 
 	//Get multiplier for detection based on light level.
 	double LightDetect(double light_amt)
 	{
-		return ExpCurve(light_amt, 0.0, 256.0, 0.16666667, VISUAL_MULT);
-	}
-	
-	//Get Doom angle in range [0,7] from an angle in degrees.
-	int DoomAngle(double angle)
-	{
-		return int(angle / 45.0);
+		return ExpCurve(light_amt, 0.0, 256.0, 0.0, VISUAL_MULT);
 	}
 
 	//Custom detection function. Detect the player visually/aurally by degrees.
@@ -145,10 +164,6 @@ class SensoryMonster : Actor
 		{
 			double visual_detection = 0.0;
 			double hear_mod = 0.0;
-			
-			//Angular difference from current facing to facing the target.
-			double delta = DeltaAngle(angle, VectorAngle(target.pos.x - pos.x,
-				target.pos.y - pos.y));
 			
 			//Distance to target.
 			double dist = Distance3D(target);
@@ -179,16 +194,62 @@ class SensoryMonster : Actor
 				
 				A_ClearLastHeard();
 			}
-			
-			//Angle stuff that, at present, I do not believe works.
-			if (visual_detection + hear_mod >= 1.0)
+		}
+	}
+	
+	action void A_SeekPlayer()
+	{
+		if (!invoker.search_last_seen)
+		{
+			invoker.A_Wander();
+			return;
+		}
+		
+		vector2 delta;
+		delta.x = invoker.seen_x - invoker.pos.x;
+		delta.y = invoker.seen_y - invoker.pos.y;
+		delta = delta.unit() * invoker.speed;
+		
+		vector2 dest = delta;
+		dest.x += invoker.pos.x;
+		dest.y += invoker.pos.y;
+		
+		invoker.angle = VectorAngle(delta.x, delta.y);
+
+		if (!invoker.TryMove(dest, invoker.MaxDropoffHeight))
+		{
+			vector2 try_ccw;
+			vector2 try_cw;
+			for (double offset = 5.0; offset < 90.0; offset += 5.0)
 			{
-				angle += delta * 0.1;
-				movedir = DoomAngle(angle);
-				seen_x = target.pos.x;
-				seen_y = target.pos.y;
+				try_ccw = RotateVector(delta, offset);
+				try_ccw.x += invoker.pos.x;
+				try_ccw.y += invoker.pos.y;
+				dest = try_ccw;
+				
+				invoker.angle = VectorAngle(dest.x - invoker.pos.x, dest.y -
+					invoker.pos.y);
+					
+				if (invoker.TryMove(dest, invoker.MaxDropoffHeight))
+					break;
+					
+				try_cw = RotateVector(delta, -offset);
+				try_cw.x += invoker.pos.x;
+				try_cw.y += invoker.pos.y;
+				dest = try_cw;
+				
+				invoker.angle = VectorAngle(dest.x - invoker.pos.x, dest.y -
+					invoker.pos.y);
+				
+				if (invoker.TryMove(dest, invoker.MaxDropoffHeight))
+					break;
 			}
 		}
+		FLineTraceData doorCheck;
+		LineTrace(invoker.angle, 64.0, 0.0, offsetz: height / 2, data:
+			doorCheck);
+		if (doorCheck.HitType == TRACE_HitWall)
+			doorCheck.HitLine.Activate(self, 0, SPAC_Use);
 	}
 
 	//Custom A_Look function using DetectPlayers().
@@ -229,12 +290,7 @@ class SensoryMonster : Actor
 	//detected player.
 	action void A_Search(StateLabel attack = "See", StateLabel give_up = "Spawn")
 	{
-		//If monster still has a target, head that way but don't attack.
-		if (invoker.target)
-			invoker.A_Chase(null, null);
-		//Otherwise, just wander around.
-		else
-			invoker.A_Wander();
+		invoker.A_SeekPlayer();
 
 		//Check monster senses.
 		invoker.DetectPlayers();
